@@ -7,15 +7,44 @@ use Contao\BackendUser;
 use Contao\DataContainer;
 use Contao\Environment;
 use Contao\File;
-use Contao\Files;
 use Contao\FileUpload;
 use Contao\Input;
 use Contao\Message;
 use Contao\StringUtil;
 use Contao\System;
+use Wiksoft\DbChessBundle\Helper\GameAlias;
+use Wiksoft\DbChessBundle\Pgn\PgnReader;
 
 class DbChessImportController extends Backend
 {
+    /**
+     * PGN-Tags, die importiert werden dürfen (Tag => maximale Länge laut
+     * Datenbankspalte, null = unbegrenzt). Andere Tags werden ignoriert,
+     * damit eine PGN-Datei keine internen Felder (id, pid, sid, alias,
+     * gameFeatured, …) überschreiben kann.
+     */
+    private const IMPORT_FIELDS = [
+        'event' => 255,
+        'site' => 255,
+        'date' => 10,
+        'round' => 255,
+        'white' => 255,
+        'black' => 255,
+        'result' => 7,
+        'eco' => 3,
+        'whiteelo' => 4,
+        'blackelo' => 4,
+        'source' => 255,
+        'annotator' => 255,
+        'fen' => 255,
+        'remark' => null,
+    ];
+
+    /** Felder des "Seven Tag Roster", die wie im Backend-Formular bei fehlendem Wert "?" erhalten */
+    private const ROSTER_FIELDS = ['event', 'site', 'round', 'white', 'black'];
+
+    private const RESULTS = ['1-0', '0-1', '1/2-1/2', '*'];
+
     public function importPgn(DataContainer $dc)
     {
         if (Input::get('key') != 'importPgn') {
@@ -40,104 +69,24 @@ class DbChessImportController extends Backend
                 $this->reload();
             }
 
-            $this->import('Database');
-            $this->import(Files::class, 'Files');
+            foreach ($arrUploaded as $strUploadedFile) {
+                $objFile = new File($strUploadedFile);
 
-            foreach ($arrUploaded as $strCsvFile) {
-                $objFile = new File($strCsvFile, true);
-
-                if ($objFile->extension != 'pgn') {
-                    Message::addError(sprintf($GLOBALS['TL_LANG']['ERR']['filetype'], $objFile->extension));
-                    continue;
-                }
-
-                /* Partiedaten auslesen */
-                $inhalt = $objFile->getContent();
-
-                $tags = array();
-                $partien_anz = 0;
-                $leerzeile = $this->leerzeileSuchen($inhalt, 0);
-                /* PGN-Datei nach Tags durchsuchen */
-                for ($i = 0; $i < strlen($inhalt); $i++) {
-                    if ($inhalt[$i] == '[') {
-                        $tag_start = $i;
-                        $tag_ende = strpos($inhalt, ']', $i + 1);
-                        if ($tag_ende !== false) {
-                            $tag_wert_start = strpos($inhalt, "\"", $tag_start);
-                            $tag_wert_ende = strpos($inhalt, "\"", $tag_wert_start + 1);
-                            $tag_wert = substr($inhalt, $tag_wert_start + 1, $tag_wert_ende - ($tag_wert_start + 1));
-                            $tag = trim(substr($inhalt, $tag_start + 1, $tag_wert_start - ($tag_start + 1)));
-                            if (strpos($tag_wert, '?') === 0) {
-                                $tag_wert = '';
-                            }
-                            $onegametags[strtolower($tag)] = $tag_wert;
-                            $i = $tag_ende;
-                        }
-                    } elseif ($i >= $leerzeile) {
-                        $n = $this->leerzeileSuchen($inhalt, $i + 1);
-                        $onegametags['pgn'] = trim(substr($inhalt, $i, $n - $i));
-                        $tags[] = $onegametags;
-                        unset($onegametags);
-                        $partien_anz++;
-                        $i = $n;
-                        $pos_a = strpos($inhalt, '[', $i);
-                        if ($pos_a !== false) {
-                            $i = $pos_a - 1;
-                            $leerzeile = $this->leerzeileSuchen($inhalt, $i + 1);
-                        } else {
-                            break;
-                        }
+                try {
+                    if ($objFile->extension != 'pgn') {
+                        Message::addError(sprintf($GLOBALS['TL_LANG']['ERR']['filetype'], $objFile->extension));
+                        continue;
                     }
-                }
-                if (!empty($tags)) {
-                    // Alle Partien einer PGN-Datei in einer Transaktion importieren:
-                    // schneller (kein Autocommit pro Query) und atomar (ein Fehler
-                    // mitten in einer großen Datei lässt keine Partien-Teilmenge
-                    // zurück, bereits erfolgreich importierte Dateien bleiben
-                    // trotzdem erhalten, da jede Datei ihre eigene Transaktion hat).
-                    $this->Database->beginTransaction();
 
-                    try {
-                        foreach ($tags as $nr => $partie) {
-                            $attr = array();
-                            $value = array();
-                            foreach ($partie as $key => $tag) {
-                                if ($this->Database->fieldExists($key, $dc->table)) {
-                                    if (!$tag) {
-                                        $tag = '?';
-                                    }
-                                    if ($key == 'pgn') {
-                                        $tag = str_replace("\r", " ", $tag);
-                                        $tag = str_replace("\n", " ", $tag);
-                                        $tag = preg_replace('/ {2,}/', ' ', $tag);
-                                    }
-                                    $value[] = $tag;
-                                    $attr[] = $key;
-                                }
-                            }
-                            $attr[] = 'tstamp';
-                            $value[] = time();
-                            $attr[] = 'pid';
-                            $value[] = $dc->id;
-                            $arrSet = array_combine($attr, $value);
-                            $id = $this->Database->prepare("INSERT INTO " . $dc->table . " %s")
-                                ->set($arrSet)
-                                ->execute()
-                                ->insertId;
-                            // Alias generieren und speichern
-                            $alias = $this->generateAlias($arrSet, $id);
-                            $this->Database->prepare("UPDATE " . $dc->table . " SET alias=? WHERE id=?")
-                                ->execute($alias, $id);
-                        }
-
-                        $this->Database->commitTransaction();
-                    } catch (\Exception $e) {
-                        $this->Database->rollbackTransaction();
-
-                        throw $e;
-                    }
+                    $count = $this->importGames(PgnReader::parse($objFile->getContent()), (int) $dc->id);
+                    Message::addConfirmation(sprintf($GLOBALS['TL_LANG']['tl_dbChess_games']['importConfirm'], $count, $objFile->name));
+                } finally {
+                    // Hochgeladene Datei aus system/tmp entfernen
+                    $objFile->delete();
                 }
             }
+
+            $this->reload();
         }
 
         // Return form
@@ -145,7 +94,7 @@ class DbChessImportController extends Backend
 
         return '
 <div id="tl_buttons">
-<a href="' . StringUtil::ampersand(str_replace('&key=import', '', Environment::get('request'))) . '" class="header_back" title="' . StringUtil::specialchars($GLOBALS['TL_LANG']['MSC']['backBTTitle']) . '" accesskey="b">' . $GLOBALS['TL_LANG']['MSC']['backBT'] . '</a>
+<a href="' . StringUtil::ampersand(str_replace('&key=importPgn', '', Environment::get('request'))) . '" class="header_back" title="' . StringUtil::specialchars($GLOBALS['TL_LANG']['MSC']['backBTTitle']) . '" accesskey="b">' . $GLOBALS['TL_LANG']['MSC']['backBT'] . '</a>
 </div>
 
 <h2 class="sub_headline">' . $GLOBALS['TL_LANG']['tl_dbChess_games']['importPgn'][1] . '</h2>
@@ -173,58 +122,83 @@ class DbChessImportController extends Backend
 </form>';
     }
 
-    protected function leerzeileSuchen($zeichenkette, $pos)
+    /**
+     * Importiert alle Partien einer PGN-Datei in einer Transaktion:
+     * schneller (kein Autocommit pro Query) und atomar (ein Fehler mitten in
+     * einer großen Datei lässt keine Partien-Teilmenge zurück; bereits
+     * erfolgreich importierte Dateien bleiben trotzdem erhalten, da jede
+     * Datei ihre eigene Transaktion hat).
+     *
+     * @param list<array<string, string>> $games
+     */
+    private function importGames(array $games, int $pid): int
     {
-        $lz_1 = strpos($zeichenkette, "\n\r\n", $pos);
-        $lz_2 = strpos($zeichenkette, "\n\n", $pos);
-        if ($lz_1 === false) {
-            if ($lz_2 === false) {
-                return strlen($zeichenkette) - 1;
-            }
-            return $lz_2;
-        } else {
-            if ($lz_2 === false) {
-                return $lz_1;
-            }
+        if (!$games) {
+            return 0;
         }
-        return min($lz_1, $lz_2);
+
+        $this->Database->beginTransaction();
+
+        try {
+            foreach ($games as $tags) {
+                $arrSet = $this->normalizeGame($tags);
+                $arrSet['tstamp'] = time();
+                $arrSet['pid'] = $pid;
+
+                $id = (int) $this->Database->prepare("INSERT INTO tl_dbChess_games %s")
+                    ->set($arrSet)
+                    ->execute()
+                    ->insertId;
+
+                // Alias generieren und speichern
+                $alias = GameAlias::unique(GameAlias::build($arrSet), $id);
+                $this->Database->prepare("UPDATE tl_dbChess_games SET alias=? WHERE id=?")
+                    ->execute($alias, $id);
+            }
+
+            $this->Database->commitTransaction();
+        } catch (\Throwable $e) {
+            $this->Database->rollbackTransaction();
+
+            throw $e;
+        }
+
+        return \count($games);
     }
 
-    public function generateAlias($arrValue, $id)
+    /**
+     * Übernimmt nur die erlaubten Tags und bringt die Werte in dasselbe
+     * Format, das auch das Backend-Formular erzeugt.
+     *
+     * @param array<string, string> $tags
+     * @return array<string, string>
+     */
+    private function normalizeGame(array $tags): array
     {
-        $white = $black = '_';
-        $date = $site = $event = $round = '';
-        if ($arrValue['white'] != '?') {
-            $arrWhite = explode(',', $arrValue['white']);
-            $white = $arrWhite[0];
-        }
-        if ($arrValue['black'] != '?') {
-            $arrBlack = explode(',', $arrValue['black']);
-            $black = $arrBlack[0];
-        }
-        if (substr($arrValue['date'], 0, 4) != '????') {
-            $arrDate = explode('.', $arrValue['date']);
-            $date = $arrDate[0];
-        }
-        if ($arrValue['site'] != '?') {
-            $site = '_' . $arrValue['site'];
-        }
-        if ($arrValue['event'] != '?') {
-            $event = '_' . $arrValue['event'];
-        }
-        if ($arrValue['round'] != '?') {
-            $round = '_' . $arrValue['round'];
-        }
-        $varValue = $white . '-' . $black . '_' . $date . $site . $event . $round;
-        $varValue = StringUtil::generateAlias($varValue);
+        $arrSet = [];
 
-        $objAlias = $this->Database->prepare("SELECT id FROM tl_dbChess_games WHERE id=? OR alias=?")
-            ->execute($id, $varValue);
+        foreach (self::IMPORT_FIELDS as $field => $maxLength) {
+            $value = trim($tags[$field] ?? '');
+            $unknown = $value === '' || preg_match('/^[?.]+$/', $value);
 
-        if ($objAlias->numRows > 1) {
-            $varValue .= '-id-' . $id;
+            if (\in_array($field, self::ROSTER_FIELDS, true)) {
+                $value = $unknown ? '?' : $value;
+            } elseif ($field === 'date') {
+                $value = $unknown ? '????.??.??' : $value;
+            } elseif ($field === 'result') {
+                $value = \in_array($value, self::RESULTS, true) ? $value : '*';
+            } elseif ($field === 'whiteelo' || $field === 'blackelo') {
+                $value = ctype_digit($value) ? $value : '';
+            } elseif ($unknown) {
+                $value = '';
+            }
+
+            $arrSet[$field] = $maxLength !== null ? mb_substr($value, 0, $maxLength) : $value;
         }
 
-        return $varValue;
+        // Zeilenumbrüche und überflüssige Leerzeichen entfernt bereits der PgnReader
+        $arrSet['pgn'] = $tags['pgn'] ?? '';
+
+        return $arrSet;
     }
 }

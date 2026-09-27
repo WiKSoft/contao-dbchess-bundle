@@ -30,7 +30,7 @@ $GLOBALS['TL_DCA']['tl_dbChess_collection'] = array
             'mode' => 2,
             'fields' => array('name'),
             'flag' => 1,
-            'panelLayout' => 'filter;sort,search,limit'
+            'panelLayout' => 'sort,search,limit'
         ),
         'label' => array
             (

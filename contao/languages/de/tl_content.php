@@ -20,7 +20,7 @@ $GLOBALS['TL_LANG']['tl_content']['dbChess_list_fields_option']['eco'] = 'ECO';
 $GLOBALS['TL_LANG']['tl_content']['dbChess_list_fields_option']['source'] = 'Quelle';
 $GLOBALS['TL_LANG']['tl_content']['dbChess_list_fields_option']['annotator'] = 'Kommentator';
 $GLOBALS['TL_LANG']['tl_content']['dbChess_list_fields_option']['pgn'] = 'Notation';
-$GLOBALS['TL_LANG']['tl_content']['dbChess_list_filter'] = array('Liste filtern', 'Eigene WHERE-Anweisung verwenden, z.B. "event=\'Internationales Schachmeisterturnier\' and site=\'Karlsbad\' and date LIKE \'%1907%\'" (Eingabe ohne doppelte Anführungszeichen!)');
+$GLOBALS['TL_LANG']['tl_content']['dbChess_list_filter'] = array('Liste filtern', 'Eigene WHERE-Bedingung (SQL), z.B. "event=\'Internationales Schachmeisterturnier\' and site=\'Karlsbad\' and date LIKE \'%1907%\'" (Eingabe ohne doppelte Anführungszeichen!). Insert-Tags werden unterstützt, z.B. "date LIKE \'{{date::Y}}%\'" – bitte nur Insert-Tags mit festen Werten verwenden, keine, die Besuchereingaben oder URL-Bestandteile liefern. Nur Administratoren können dieses Feld bearbeiten.');
 $GLOBALS['TL_LANG']['tl_content']['dbChess_list_sortfields'] =array('Liste sortieren', 'Wählen Sie die Sortierung der Liste aus.');
 $GLOBALS['TL_LANG']['tl_content']['dbChess_list_byorder'] =array('Sortierreihenfolge', 'Wählen Sie die Sortierreihenfolge der Liste aus.');
 $GLOBALS['TL_LANG']['tl_content']['dbChess_list_byorder_option']['a'] = 'aufsteigend';
@@ -29,3 +29,4 @@ $GLOBALS['TL_LANG']['tl_content']['dbChess_list_byorder_option']['d'] = 'absteig
 $GLOBALS['TL_LANG']['tl_content']['dbChess_list_template'] = array('Schachdatenbank-Liste Template','Hier können Sie das Schachdatenbank-Liste Template auswählen.');
 $GLOBALS['TL_LANG']['tl_content']['dbChess_list_jumpTo'] = array('Weiterleitungsseite','Bitte wählen Sie die Seite aus, zu der Besucher weitergeleitet werden, wenn Sie eine Partie anklicken.');
 $GLOBALS['TL_LANG']['tl_content']['dbChess_dl_featured'] =array('Nur hervorgehobene Partien', 'Bei verknüpften Partien werden nur die hervorgehobene Partien zum Download ausgewählt.');
+$GLOBALS['TL_LANG']['tl_content']['dbChess_games_count'] = 'Partien';

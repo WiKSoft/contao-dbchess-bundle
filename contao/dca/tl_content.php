@@ -1,17 +1,24 @@
 <?php
 
 use Contao\Backend;
+use Contao\BackendUser;
+use Contao\DataContainer;
+
+/**
+ * Config
+ */
+$GLOBALS['TL_DCA']['tl_content']['config']['onload_callback'][] = array('tl_content_dbChess_list', 'protectFilterField');
 
 /**
  * Palettes
  */
 $GLOBALS['TL_DCA']['tl_content']['palettes']['dbChess_list'] = '{type_legend},type,headline;{dbChess_list_element},dbChess_list_collection,'
         . 'dbChess_list_fields,dbChess_list_filter,dbChess_list_sortfields,dbChess_list_byorder,dbChess_list_jumpTo;{template_legend:hide},'
-        . 'dbChess_list_template;{protected_legend:hide},protected;{expert_legend:hide},guests,cssID,space;{invisible_legend:hide},invisible,start,stop';
+        . 'dbChess_list_template;{protected_legend:hide},protected;{expert_legend:hide},cssID;{invisible_legend:hide},invisible,start,stop';
 
 $GLOBALS['TL_DCA']['tl_content']['palettes']['dbChess_download'] = '{type_legend},type,headline;{dbChess_list_element},dbChess_list_collection,'
         . 'dbChess_list_filter,dbChess_list_sortfields,dbChess_list_byorder,dbChess_dl_featured;{dwnconfig_legend},linkTitle,titleText;'
-        . '{protected_legend:hide},protected;{expert_legend:hide},guests,cssID,space;{invisible_legend:hide},invisible,start,stop';
+        . '{protected_legend:hide},protected;{expert_legend:hide},cssID;{invisible_legend:hide},invisible,start,stop';
 /**
  * Fields
  */
@@ -48,6 +55,10 @@ $GLOBALS['TL_DCA']['tl_content']['fields']['dbChess_list_filter'] = array
     'exclude' => true,
     'inputType' => 'text',
     'eval' => array('tl_class' => 'long'),
+    // Freier SQL-Ausdruck: nur Administratoren dürfen ihn ändern
+    'save_callback' => array(
+        array('tl_content_dbChess_list', 'saveFilterField')
+    ),
     'sql' => "varchar(999) NOT NULL default ''"
 );
 
@@ -121,5 +132,32 @@ class tl_content_dbChess_list extends Backend
     public function get_dbChess_list_Templates()
     {
         return $this->getTemplateGroup('ce_dbChess_list');
+    }
+
+    /**
+     * Der Filter ist ein freier SQL-Ausdruck (wie list_where im
+     * Contao-Auflistungsmodul). Für Nicht-Administratoren wird das Feld
+     * daher schreibgeschützt angezeigt.
+     */
+    public function protectFilterField(DataContainer $dc)
+    {
+        if (!BackendUser::getInstance()->isAdmin) {
+            $GLOBALS['TL_DCA']['tl_content']['fields']['dbChess_list_filter']['eval']['readonly'] = true;
+        }
+    }
+
+    /**
+     * Verhindert, dass Nicht-Administratoren den Filter ändern (auch nicht
+     * über einen manipulierten Request): es bleibt der gespeicherte Wert.
+     */
+    public function saveFilterField($value, DataContainer $dc)
+    {
+        if (BackendUser::getInstance()->isAdmin) {
+            return $value;
+        }
+
+        $record = $dc->getCurrentRecord();
+
+        return (string) ($record['dbChess_list_filter'] ?? '');
     }
 }

@@ -14,8 +14,10 @@ Sammlungen als PGN zum Download anbieten.
   dazu die **PGN-Notation**, eine Bemerkung (Rich-Text), ein Alias sowie ein
   „featured"-Kennzeichen.
 - Aktionen für eine ganze Sammlung:
-  - **PGN-Import** – `.pgn`-Datei hochladen, Partien werden zerlegt und die Tags
-    in die Felder übernommen.
+  - **PGN-Import** – `.pgn`-Datei hochladen, Partien werden zerlegt und die
+    Standard-Tags (Event, Site, Date, Round, White, Black, Result, ECO,
+    WhiteElo, BlackElo, Source, Annotator, FEN) sowie `Remark` in die Felder
+    übernommen; andere Tags werden ignoriert.
   - **PGN-Export** – Sammlung als PGN-Datei ausgeben.
   - **Partien verknüpfen** – findet identische Partien (gleiches Datum, Event,
     Ort, Runde, Spieler, Ergebnis), z. B. dieselbe Partie mit Kommentaren
@@ -33,7 +35,8 @@ Nachschlagetabelle ECO-Code → Eröffnungsname (z. B. `B90`).
 - Zeigt Partien aus ausgewählten Sammlungen als Liste oder Tabelle
   (Templates `ce_dbChess_list_default` / `ce_dbChess_list_table`).
 - Konfigurierbar: angezeigte Felder, Sortierfelder und -richtung, zusätzlicher
-  SQL-Filter, Weiterleitungsseite (Link auf die Einzelpartie per Alias, z. B. zu
+  SQL-Filter (nur von Administratoren bearbeitbar, Insert-Tags wie
+  `{{date::Y}}` werden ersetzt), Weiterleitungsseite (Link auf die Einzelpartie per Alias, z. B. zu
   einem Nachspiel-Viewer).
 - Verknüpfte Partien erscheinen nur einmal; Kommentatoren und Quellen werden
   dabei zusammengeführt.
@@ -42,7 +45,8 @@ Nachschlagetabelle ECO-Code → Eröffnungsname (z. B. `B90`).
 
 - Erzeugt aus den gewählten Sammlungen (mit Filter, Sortierung, optional nur
   „featured"-Partien) eine PGN-Datei zum Herunterladen.
-- Die Datei wird unter `files/dbChess/` abgelegt und einen Tag lang gecacht.
+- Die Datei wird beim Download unter `files/dbChess/` abgelegt und nur neu
+  geschrieben, wenn sich der Inhalt geändert hat.
 
 ### Frontend-Modul „dbChess_index" – Index / Tag-Cloud
 
@@ -83,35 +87,3 @@ Zielseite eine separate Lösung benötigt.
 
 4. **Updates**: geänderte Dateien nach `packages/…` hochladen, `version` in der
    `composer.json` des Bundles erhöhen und im Contao Manager ein Update anstoßen.
-
-## Verzeichnisstruktur
-
-```
-contao-dbchess-bundle/
-├── composer.json
-├── contao/
-│   ├── config/config.php
-│   ├── dca/
-│   │   ├── tl_content.php
-│   │   ├── tl_dbChess_collection.php
-│   │   ├── tl_dbChess_eco.php
-│   │   ├── tl_dbChess_games.php
-│   │   └── tl_module.php
-│   ├── languages/de/*.php
-│   └── templates/*.html.twig
-├── public/
-│   ├── dbChess.css
-│   └── images/*.gif, *.png
-└── src/
-    ├── WiksoftDbChessBundle.php
-    ├── ContaoManager/Plugin.php
-    ├── Module/ModuleDbChessIndex.php
-    ├── ContentElement/
-    │   ├── ContentDbChessList.php
-    │   └── ContentDbChessDownload.php
-    └── Controller/BackendModule/
-        ├── DbChessExportController.php
-        ├── DbChessImportController.php
-        ├── DbChessLinkGameController.php
-        └── DbChessUnlinkGameController.php
-```

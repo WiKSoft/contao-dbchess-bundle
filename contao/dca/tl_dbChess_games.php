@@ -5,6 +5,7 @@ use Contao\Config;
 use Contao\DataContainer;
 use Contao\DC_Table;
 use Contao\StringUtil;
+use Wiksoft\DbChessBundle\Helper\GameAlias;
 
 /**
  * Table tl_dbChess_games
@@ -36,6 +37,10 @@ $GLOBALS['TL_DCA']['tl_dbChess_games'] = array
         'oncut_callback' => array
             (
             array('tl_dbChess_games', 'cutGame')
+        ),
+        'oncopy_callback' => array
+            (
+            array('tl_dbChess_games', 'copyGame')
         ),
     ),
     // List
@@ -158,6 +163,7 @@ $GLOBALS['TL_DCA']['tl_dbChess_games'] = array
         ),
         'sid' => array
             (
+            'eval' => array('doNotCopy' => true),
             'sql' => "varchar(255) NOT NULL default ''"
         ),
         'gameLink' => array
@@ -174,7 +180,7 @@ $GLOBALS['TL_DCA']['tl_dbChess_games'] = array
                 (
                 array('tl_dbChess_games', 'saveFieldSid')
             ),
-            'eval' => array('tl_class' => 'clr long'),
+            'eval' => array('doNotCopy' => true, 'tl_class' => 'clr long'),
             'sql' => "char(1) NOT NULL default ''"
         ),
         'gameFeatured' => array
@@ -183,7 +189,7 @@ $GLOBALS['TL_DCA']['tl_dbChess_games'] = array
             'inputType' => 'checkbox',
             'exclude' => true,
             'filter' => true,
-            'eval' => array('includeBlankOption' => TRUE, 'submitOnChange' => FALSE, 'multiple' => FALSE, 'tl_class' => 'clr long'),
+            'eval' => array('tl_class' => 'clr long'),
             'sql' => "char(1) NOT NULL default ''"
         ),
         'alias' => array
@@ -276,7 +282,7 @@ $GLOBALS['TL_DCA']['tl_dbChess_games'] = array
             'sorting' => true,
             'flag' => 1,
             'inputType' => 'text',
-            'eval' => array('decodeEntities' => true, 'maxlength' => 255, 'tl_class' => 'w50', 'includeBlankOption' => 'true', 'blankOptionLabel' => 'NN'),
+            'eval' => array('decodeEntities' => true, 'maxlength' => 255, 'tl_class' => 'w50'),
             'sql' => "varchar(255) NOT NULL default ''"
         ),
         'black' => array
@@ -395,10 +401,7 @@ $GLOBALS['TL_DCA']['tl_dbChess_games'] = array
                 array('tl_dbChess_games', 'saveFieldPgn')
             ),
             'exclude' => true,
-            'filter' => false,
             'search' => true,
-            'sorting' => true,
-            'flag' => 1,
             'inputType' => 'textarea',
             'eval' => array('decodeEntities' => true, 'cols' => '20', 'rows' => '10', 'tl_class' => 'clr'),
             'sql' => "text NULL"
@@ -407,10 +410,7 @@ $GLOBALS['TL_DCA']['tl_dbChess_games'] = array
             (
             'label' => &$GLOBALS['TL_LANG']['tl_dbChess_games']['remark'],
             'exclude' => true,
-            'filter' => true,
             'search' => true,
-            'sorting' => true,
-            'flag' => 1,
             'inputType' => 'textarea',
             'eval' => array('decodeEntities' => false, 'rte' => 'tinyMCE', 'cols' => '20', 'rows' => '10', 'tl_class' => 'clr'),
             'sql' => "text NULL"
@@ -661,8 +661,11 @@ class tl_dbChess_games extends Backend {
 
     public function saveFieldEco($field, DataContainer $dc) {
         // Feld 'eco', mittels 'ecoCode' der Tabelle 'tl_dbChess_eco', speichern
-        $objSession = $this->Database->prepare("SELECT * FROM tl_dbChess_eco WHERE id=?")->execute($field);
-        return $objSession->ecoCode;
+        if (!$field) {
+            return '';
+        }
+        $objSession = $this->Database->prepare("SELECT ecoCode FROM tl_dbChess_eco WHERE id=?")->execute($field);
+        return (string) $objSession->ecoCode;
     }
 
     public function showGame($arrRow) {
@@ -709,51 +712,33 @@ class tl_dbChess_games extends Backend {
     }
 
     public function generateAlias($varValue, DataContainer $dc) {
-        $autoAlias = false;
-
-        // generiert ein alias wenn nicht vorhanden
+        // generiert ein Alias, wenn keines eingegeben wurde
         if ($varValue == '') {
-            $autoAlias = true;
-            $white = $black = '_';
-            $date = $site = $event = $round = '';
-            if ($dc->activeRecord->white != '?') {
-                $arrWhite = explode(',', $dc->activeRecord->white);
-                $white = $arrWhite[0];
-            }
-            if ($dc->activeRecord->black != '?') {
-                $arrBlack = explode(',', $dc->activeRecord->black);
-                $black = $arrBlack[0];
-            }
-            if (substr($dc->activeRecord->date, 0, 4) != '????') {
-                $arrDate = explode('.', $dc->activeRecord->date);
-                $date = $arrDate[0];
-            }
-            if ($dc->activeRecord->site != '?') {
-                $site = '_' . $dc->activeRecord->site;
-            }
-            if ($dc->activeRecord->event != '?') {
-                $event = '_' . $dc->activeRecord->event;
-            }
-            if ($dc->activeRecord->round != '?') {
-                $round = '_' . $dc->activeRecord->round;
-            }
-            $varValue = $white . '-' . $black . '_' . $date . $site . $event . $round;
-            $varValue = StringUtil::generateAlias($varValue);
+            return GameAlias::unique(GameAlias::build((array) $dc->activeRecord), (int) $dc->id);
         }
 
-        $objAlias = $this->Database->prepare("SELECT id FROM tl_dbChess_games WHERE id=? OR alias=?")
-                ->execute($dc->id, $varValue);
-
-        // überprüfen ob der alias bereits existiert
-        if ($objAlias->numRows > 1) {
-            if (!$autoAlias) {
-                throw new Exception(sprintf($GLOBALS['TL_LANG']['ERR']['aliasExists'], $varValue));
-            }
-            // alias existiert, id anhängen
-            $varValue .= '-id-' . $dc->id;
+        // überprüfen, ob das eingegebene Alias bereits existiert
+        if (GameAlias::isTaken($varValue, (int) $dc->id)) {
+            throw new Exception(sprintf($GLOBALS['TL_LANG']['ERR']['aliasExists'], $varValue));
         }
 
         return $varValue;
+    }
+
+    /**
+     * Beim Kopieren (auch einer ganzen Sammlung) ein neues Alias erzeugen,
+     * da 'alias' als doNotCopy leer übernommen wird.
+     */
+    public function copyGame($insertId, DataContainer $dc) {
+        $row = $this->Database->prepare("SELECT * FROM tl_dbChess_games WHERE id=?")
+                ->limit(1)
+                ->execute($insertId)
+                ->row();
+        if (!$row || $row['alias'] !== '') {
+            return;
+        }
+        $alias = GameAlias::unique(GameAlias::build($row), (int) $insertId);
+        $this->Database->prepare("UPDATE tl_dbChess_games SET alias=? WHERE id=?")->execute($alias, $insertId);
     }
 
 }

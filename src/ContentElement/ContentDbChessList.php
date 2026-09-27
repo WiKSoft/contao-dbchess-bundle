@@ -1,13 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Wiksoft\DbChessBundle\ContentElement;
 
 use Contao\ContentElement;
+use Contao\Database;
 use Contao\FrontendTemplate;
 use Contao\PageModel;
 use Contao\StringUtil;
-use Contao\Config;
 use Contao\System;
+use Wiksoft\DbChessBundle\Helper\GameQuery;
 
 class ContentDbChessList extends ContentElement
 {
@@ -17,32 +20,13 @@ class ContentDbChessList extends ContentElement
      */
     protected $strTemplate = 'ce_dbChess_list_default';
 
-    public function generate()
-    {
-        return parent::generate();
-    }
-
     /**
      * Generate module
      */
     protected function compile()
     {
-        $this->import('Database');
         System::loadLanguageFile('tl_dbChess_games');
         System::loadLanguageFile('tl_module');
-        $gameslist = $collectionlist = array();
-
-        // Partiesammlungen auswählen
-        $arrCollection = StringUtil::deserialize($this->dbChess_list_collection, true);
-        $collection = array();
-        foreach ($arrCollection as $valueCollection) {
-            $collection[] = 'pid=' . $valueCollection;
-        }
-        if ($collection) {
-            $pidCollection = implode(' OR ', $collection);
-        } else {
-            $pidCollection = "pid IS NULL";
-        }
 
         // Datenfelder um id und sid ergänzen
         $arrFields = StringUtil::deserialize($this->dbChess_list_fields, true);
@@ -51,101 +35,57 @@ class ContentDbChessList extends ContentElement
 
         // Feldbezeichnungen für die Tabellenkopfzeile vormerken (Zuweisung ans
         // Template erfolgt weiter unten, NACH einem möglichen Template-Wechsel)
-        $fieldLabels = array();
+        $fieldLabels = [];
         foreach ($arrFields as $f) {
             $fieldLabels[$f] = $GLOBALS['TL_LANG']['tl_dbChess_games'][$f][0] ?? $f;
         }
 
-        $arrSorting = StringUtil::deserialize($this->dbChess_list_sortfields, true);
+        [$where, $params] = GameQuery::collectionWhere($this->dbChess_list_collection);
+        $filter = GameQuery::filterClause($this->dbChess_list_filter);
+        $sorting = GameQuery::sortingClause($this->dbChess_list_sortfields, $this->dbChess_list_byorder);
 
-        // Erlaubte Spaltennamen für die ORDER-BY-Klausel (identisch mit den
-        // 'options' von dbChess_list_sortfields in tl_content.php). Da
-        // Spaltennamen sich nicht per Platzhalter parametrisieren lassen,
-        // wird der Wert aus dem Backend-Auswahlfeld hier gegen diese feste
-        // Liste geprüft, bevor er in die SQL-Query interpoliert wird.
-        $arrAllowedSortFields = array('event', 'site', 'date', 'round', 'result', 'white', 'black', 'eco', 'whiteelo', 'blackelo', 'annotator', 'source');
+        $result = Database::getInstance()
+            ->prepare("SELECT * FROM tl_dbChess_games WHERE ($where) $filter $sorting")
+            ->execute(...$params);
 
-        if ($this->dbChess_list_byorder == 'a') {
-            $byOrder = ' ASC';
-        } else {
-            $byOrder = ' DESC';
-        }
-        $sorting = '';
-        foreach ($arrSorting as $valueSorting) {
-            if (!in_array($valueSorting, $arrAllowedSortFields, true)) {
-                continue;
-            }
-            if ($sorting) {
-                $sorting .= ', ';
-            }
-            if ($valueSorting == 'round') {
-                $valueSorting = "CAST(round AS UNSIGNED)";
-            }
-            $sorting .= $valueSorting . $byOrder;
-        }
-        if ($sorting) {
-            $sorting = " ORDER BY " . $sorting . ", gameFeatured DESC";
-        } else {
-            $sorting = " ORDER BY gameFeatured DESC";
-        }
+        $objJumpTo = $this->dbChess_list_jumpTo ? PageModel::findById($this->dbChess_list_jumpTo) : null;
+        $gameslist = [];
 
-        $filter = $this->dbChess_list_filter;
-        if ($filter) {
-            $filter = StringUtil::decodeEntities("AND " . '(' . $filter) . ')';
-        }
-
-        $result = $this->Database->prepare("SELECT * FROM tl_dbChess_games WHERE (" . $pidCollection . ") " . $filter . $sorting)->execute();
         while ($result->next()) {
-            $game = array();
-            if ($this->dbChess_list_jumpTo) {
-                $objJumpTo = PageModel::findByPk($this->dbChess_list_jumpTo);
-                $game['href'] = $objJumpTo?->getFrontendUrl(((Config::get('useAutoItem') && !Config::get('disableAlias')) ? '/' : '/items/') . $result->alias);
+            $game = [];
+
+            if ($objJumpTo !== null) {
+                $game['href'] = $objJumpTo->getFrontendUrl('/items/' . $result->alias);
             }
-            foreach ($arrFields as $key => $valueFields) {
-                if ($arrFields[$key] == 'pgn') {
-                    $game[$arrFields[$key]] = StringUtil::substr($result->$valueFields, 30);
-                } elseif ($arrFields[$key] == 'date') {
-                    $arrDate = explode('.', $result->$valueFields);
-                    $game[$arrFields[$key]] = $arrDate[2] . '.' . $arrDate[1] . '.' . $arrDate[0];
-                } else {
-                    $game[$arrFields[$key]] = $result->$valueFields;
+
+            foreach ($arrFields as $field) {
+                $value = $result->$field;
+
+                if ($field === 'pgn') {
+                    $value = StringUtil::substr((string) $value, 30);
+                } elseif ($field === 'date') {
+                    $value = $this->formatDate((string) $value);
                 }
+
+                $game[$field] = $value;
             }
+
             $gameslist[] = $game;
-            unset($game);
         }
 
-        // Verknüpfte Partien nur einmalig anzeigen
-        foreach ($gameslist as $key => $value) {
-            if (!isset($gameslist[$key])) {
-                continue;
-            }
-            if ($gameslist[$key]['sid']) {
-                $sid = StringUtil::deserialize($gameslist[$key]['sid']);
-                $gameslist[$key]['sid'] = count($sid);
-                foreach ($sid as $valueSid) {
-                    if ($valueSid != $gameslist[$key]['id']) {
-                        foreach ($gameslist as $sidKey => $sidValue) {
-                            if ($gameslist[$sidKey]['id'] == $valueSid) {
-                                if (isset($gameslist[$key]['annotator']) && !strstr($gameslist[$key]['annotator'], $gameslist[$sidKey]['annotator'])) {
-                                    if ($gameslist[$key]['annotator']) {
-                                        $gameslist[$key]['annotator'] .= '; ';
-                                    }
-                                    $gameslist[$key]['annotator'] .= $gameslist[$sidKey]['annotator'];
-                                }
-                                if (isset($gameslist[$key]['source']) && !strstr($gameslist[$key]['source'], $gameslist[$sidKey]['source'])) {
-                                    if ($gameslist[$key]['source']) {
-                                        $gameslist[$key]['source'] .= '; ';
-                                    }
-                                    $gameslist[$key]['source'] .= $gameslist[$sidKey]['source'];
-                                }
-                                unset($gameslist[$sidKey]);
-                            }
-                        }
-                    }
+        // Verknüpfte Partien nur einmalig anzeigen, Kommentatoren und Quellen
+        // dabei zusammenführen
+        $gameslist = GameQuery::removeLinkedDuplicates($gameslist, true, static function (array $game, array $linked): array {
+            foreach (['annotator', 'source'] as $field) {
+                if (!isset($game[$field]) || (string) $linked[$field] === '' || str_contains((string) $game[$field], (string) $linked[$field])) {
+                    continue;
                 }
+
+                $game[$field] = ((string) $game[$field] !== '' ? $game[$field] . '; ' : '') . $linked[$field];
             }
-        }
+
+            return $game;
+        });
 
         // Use a custom template
         if ($this->dbChess_list_template != '') {
@@ -157,5 +97,20 @@ class ContentDbChessList extends ContentElement
         $this->Template->gameslist = array_values($gameslist);
         $this->Template->fieldLabels = $fieldLabels;
         $this->Template->lblPlay = $GLOBALS['TL_LANG']['tl_module']['dbChess_play'] ?? '';
+    }
+
+    /**
+     * Wandelt ein PGN-Datum (JJJJ.MM.TT) in TT.MM.JJJJ um. Werte in einem
+     * anderen Format (z.B. "?") werden unverändert zurückgegeben.
+     */
+    private function formatDate(string $date): string
+    {
+        $parts = explode('.', $date);
+
+        if (\count($parts) !== 3) {
+            return $date;
+        }
+
+        return $parts[2] . '.' . $parts[1] . '.' . $parts[0];
     }
 }

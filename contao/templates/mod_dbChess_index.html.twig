@@ -42,7 +42,7 @@
             {% block dbchess_index_tags %}
                 <ul class="mod_chesscloud block">
                     {% for tag in tags %}
-                        <li class="cbChess_index"><a href="{{ tag.url|raw }}" title="{{ tag.key }} ({{ tag.count }})">{{ tag.key }}</a></li>
+                        <li class="cbChess_index size{{ tag.size }}"><a href="{{ tag.url|raw }}" title="{{ tag.key }} ({{ tag.count }})">{{ tag.key }}</a></li>
                     {% endfor %}
                 </ul>
             {% endblock %}

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Wiksoft\DbChessBundle\Module;
 
 use Contao\BackendTemplate;
-use Contao\Config;
 use Contao\Database;
 use Contao\FrontendTemplate;
 use Contao\Input;
@@ -13,6 +12,7 @@ use Contao\Module;
 use Contao\PageModel;
 use Contao\StringUtil;
 use Contao\System;
+use Wiksoft\DbChessBundle\Helper\GameQuery;
 
 class ModuleDbChessIndex extends Module
 {
@@ -54,11 +54,14 @@ class ModuleDbChessIndex extends Module
         $this->import(Database::class, 'Database');
         System::loadLanguageFile('tl_module');
 
-        // Parameter für Detailliste vorhanden?
-        $index = $this->fullyUrlDecode((string) Input::get('index'));  // Datenfeld
+        // Parameter für Detailliste vorhanden? Input::get() wandelt Zeichen wie
+        // ( ) ' " = # in HTML-Entities um; diese werden hier zurückgewandelt,
+        // damit der Wert (als Query-Parameter) wieder dem Datenbankwert
+        // entspricht.
+        $index = StringUtil::decodeEntities($this->fullyUrlDecode((string) Input::get('index')));  // Datenfeld
         $ceId = Input::get('ce_id');  // Modul-ID
 
-        [$where, $whereParams] = $this->buildCollectionWhere();
+        [$where, $whereParams] = GameQuery::collectionWhere($this->dbChess_index_collection);
         [$field, $whiteblack] = $this->resolveIndexField();
 
         // Datenfelder der Detailliste um id und sid ergänzen
@@ -75,14 +78,14 @@ class ModuleDbChessIndex extends Module
         if ($index && $ceId == $this->id) {
             $gameslist = $this->fetchDetailList($where, $whereParams, $field, $whiteblack, $index, $arrDetailFields, $sortingDetail);
             // Verknüpfte Partien nur einmalig anzeigen
-            $gameslist = $this->deduplicateBySid($gameslist, true);
+            $gameslist = GameQuery::removeLinkedDuplicates($gameslist, true);
         }
 
         // Index erstellen
         $rows = $this->fetchFieldIndexRows($where, $whereParams, $field, $whiteblack);
 
         if ($field !== 'annotator' && $field !== 'source') {
-            $rows = $this->deduplicateBySid($rows);
+            $rows = GameQuery::removeLinkedDuplicates($rows);
         }
 
         $fieldindex = $this->buildFieldIndex($rows, $arrException, $field);
@@ -99,10 +102,11 @@ class ModuleDbChessIndex extends Module
         // vollständig aufbereiten)
         $tags = $this->buildTagCloud($fieldindex, $field, $currentMax);
 
-        $this->Template->index = $index;
+        // Insert-Tag-Klammern im (aus der URL stammenden) Wert maskieren, da
+        // Contao Insert-Tags in der fertigen Seitenausgabe ersetzt.
+        $this->Template->index = str_replace(['{{', '}}'], ['&#123;&#123;', '&#125;&#125;'], $index);
         $this->Template->tags = $tags;
         $this->Template->gameslist = array_values($gameslist);
-        $this->Template->field = $field;
         $this->Template->lblPlay = $GLOBALS['TL_LANG']['tl_module']['dbChess_play'] ?? '';
     }
 
@@ -123,25 +127,6 @@ class ModuleDbChessIndex extends Module
         } while ($value !== $previous);
 
         return $value;
-    }
-
-    /**
-     * Baut die WHERE-Bedingung für die ausgewählten Partiesammlungen als
-     * parametrisierte Query (statt String-Konkatenation der pid-Werte).
-     *
-     * @return array{0: string, 1: array<int, int|string>}
-     */
-    private function buildCollectionWhere(): array
-    {
-        $arrCollection = StringUtil::deserialize($this->dbChess_index_collection, true);
-
-        if (empty($arrCollection)) {
-            return ['pid IS NULL', []];
-        }
-
-        $placeholders = implode(',', array_fill(0, count($arrCollection), '?'));
-
-        return ['pid IN (' . $placeholders . ')', $arrCollection];
     }
 
     /**
@@ -197,7 +182,7 @@ class ModuleDbChessIndex extends Module
                 ->prepare("SELECT * FROM tl_dbChess_games WHERE ($where) AND (white=? OR black=?) ORDER BY $sortingDetail")
                 ->execute(...$params);
         } elseif ($field === 'source') {
-            $params = [...$whereParams, $index, $index . ',%'];
+            $params = [...$whereParams, $index, addcslashes($index, '%_\\') . ',%'];
             $result = $this->Database
                 ->prepare("SELECT * FROM tl_dbChess_games WHERE ($where) AND ($field=? OR $field LIKE ?) ORDER BY $sortingDetail")
                 ->execute(...$params);
@@ -209,13 +194,13 @@ class ModuleDbChessIndex extends Module
         }
 
         $gameslist = [];
+        $objJumpTo = $this->dbChess_index_jumpTo ? PageModel::findById($this->dbChess_index_jumpTo) : null;
 
         while ($result->next()) {
             $game = [];
 
-            if ($this->dbChess_index_jumpTo) {
-                $objJumpTo = PageModel::findByPk($this->dbChess_index_jumpTo);
-                $game['href'] = $objJumpTo?->getFrontendUrl(((Config::get('useAutoItem') && !Config::get('disableAlias')) ? '/' : '/items/') . $result->alias);
+            if ($objJumpTo !== null) {
+                $game['href'] = $objJumpTo->getFrontendUrl('/items/' . $result->alias);
             }
 
             foreach ($arrDetailFields as $valueFields) {
@@ -250,42 +235,6 @@ class ModuleDbChessIndex extends Module
     }
 
     /**
-     * Entfernt aus einer Liste von Partien alle über "sid" verknüpften
-     * Duplikate, sodass jede Partiengruppe nur einmal auftaucht.
-     *
-     * @param array<int, array<string, mixed>> $list
-     * @return array<int, array<string, mixed>>
-     */
-    private function deduplicateBySid(array $list, bool $replaceSidWithCount = false): array
-    {
-        foreach ($list as $key => $entry) {
-            if (!isset($list[$key]) || empty($entry['sid'])) {
-                continue;
-            }
-
-            $sidList = StringUtil::deserialize($entry['sid']);
-
-            if ($replaceSidWithCount) {
-                $list[$key]['sid'] = count($sidList);
-            }
-
-            foreach ($sidList as $sid) {
-                if ($sid == $entry['id']) {
-                    continue;
-                }
-
-                foreach ($list as $otherKey => $otherEntry) {
-                    if ($otherEntry['id'] == $sid) {
-                        unset($list[$otherKey]);
-                    }
-                }
-            }
-        }
-
-        return $list;
-    }
-
-    /**
      * Zählt die Häufigkeit jedes Feldwerts (unter Berücksichtigung der
      * konfigurierten Ausnahmewerte). Die Ausnahmeprüfung läuft über eine
      * Lookup-Tabelle (O(1) statt einer verschachtelten Schleife).
@@ -308,6 +257,11 @@ class ModuleDbChessIndex extends Module
 
                 if ($field === 'source') {
                     [$value] = explode(',', (string) $value);
+                }
+
+                // Leere Werte nicht als eigenen Index-Eintrag aufnehmen
+                if ($value === null || $value === '') {
+                    continue;
                 }
 
                 $fieldindex[$value] = ($fieldindex[$value] ?? 0) + 1;
@@ -396,7 +350,7 @@ class ModuleDbChessIndex extends Module
 
         $ratio = log($value + 1) / $logMax;
 
-        return (int) round($ratio * ($this->dbChess_index_tag_buckets - 1)) + 1;
+        return (int) round($ratio * (max(1, (int) $this->dbChess_index_tag_buckets) - 1)) + 1;
     }
 
     /**
