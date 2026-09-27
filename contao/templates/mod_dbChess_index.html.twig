@@ -1,0 +1,52 @@
+{% block dbchess_index %}
+
+    {% block dbchess_index_detail %}
+        {% if gameslist %}
+            <div class="mod_dbChess_list_game block">
+                <h2>{{ index }}</h2>
+                <ul>
+                    {% for game in gameslist %}
+                        {% block dbchess_index_detail_game %}
+                            <li>
+                                {% if game.href %}<a href="{{ game.href|raw }}" title="{{ lblPlay }}">{% endif %}
+                                {% for key, value in game %}
+                                    {% if key not in ['id', 'href', 'linkTitle'] %}
+                                        {% set field = value %}
+                                        {% if key == 'annotator' and field %}
+                                            {% set field = '[' ~ field ~ ']' %}
+                                        {% elseif key == 'round' %}
+                                            {% set field = '(' ~ field ~ ')' %}
+                                        {% elseif key == 'sid' and field %}
+                                            {% set field = '#' ~ field %}
+                                        {% endif %}
+                                        <span class="dbChess_list_{{ key }}">{{ field }}</span>
+                                    {% endif %}
+                                {% endfor %}
+                                {% if game.href %}</a>{% endif %}
+                            </li>
+                        {% endblock %}
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+    {% endblock %}
+
+    {% block dbchess_index_list %}
+        <div class="{{ class }} block"{{ cssID|raw }}{% if style %} style="{{ style|raw }}"{% endif %}>
+            {% block dbchess_index_headline %}
+                {% if headline %}
+                    <{{ hl }}>{{ headline }}</{{ hl }}>
+                {% endif %}
+            {% endblock %}
+
+            {% block dbchess_index_tags %}
+                <ul class="mod_chesscloud block">
+                    {% for tag in tags %}
+                        <li class="cbChess_index"><a href="{{ tag.url|raw }}" title="{{ tag.key }} ({{ tag.count }})">{{ tag.key }}</a></li>
+                    {% endfor %}
+                </ul>
+            {% endblock %}
+        </div>
+    {% endblock %}
+
+{% endblock %}

@@ -1,0 +1,60 @@
+{% block dbchess_list %}
+<div class="{{ class }} block"{{ cssID|raw }}{% if style %} style="{{ style|raw }}"{% endif %}>
+
+    {% block dbchess_list_headline %}
+        {% if headline %}
+            <{{ hl }}>{{ headline }}</{{ hl }}>
+        {% endif %}
+    {% endblock %}
+
+    {% block dbchess_list_table %}
+        <table>
+            <thead>
+                <tr class="dbChess_list_tr_head">
+                    {% block dbchess_list_thead %}
+                        {% if gameslist|length > 0 %}
+                            {% for key, value in gameslist[0] %}
+                                {% if key not in ['id', 'sid', 'href', 'linkTitle'] %}
+                                    {% block dbchess_list_thead_cell %}
+                                        <th class="dbChess_list_thead">{{ fieldLabels[key] ?? key }}</th>
+                                    {% endblock %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                        {% if dbChess_list_jumpTo %}
+                            <th class="dbChess_list_td_head"></th>
+                        {% endif %}
+                    {% endblock %}
+                </tr>
+            </thead>
+            <tbody>
+                {% block dbchess_list_tbody %}
+                    {% for game in gameslist %}
+                        {% block dbchess_list_row %}
+                            <tr class="dbChess_list_tr_game">
+                                {% for key, value in game %}
+                                    {% if key not in ['id', 'sid', 'href', 'linkTitle'] %}
+                                        {% block dbchess_list_row_cell %}
+                                            <td class="dbChess_list_td_{{ key }}">{{ value }}</td>
+                                        {% endblock %}
+                                    {% endif %}
+                                {% endfor %}
+                                {% if game.href %}
+                                    {% block dbchess_list_actions %}
+                                        <td class="dbChess_list_td_icon">
+                                            <a href="{{ game.href|raw }}" title="{{ lblPlay }}"
+                                                ><img class="mime_icon" alt="{{ lblPlay }}" src="{{ icon }}" style=""
+                                                >{% if game.sid %}<span class="dbChess_list_sid">#{{ game.sid }}</span>{% endif %}</a>
+                                        </td>
+                                    {% endblock %}
+                                {% endif %}
+                            </tr>
+                        {% endblock %}
+                    {% endfor %}
+                {% endblock %}
+            </tbody>
+        </table>
+    {% endblock %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% block dbchess_download %}
+<div class="{{ class }} block"{{ cssID|raw }}{% if style %} style="{{ style|raw }}"{% endif %}>
+
+    {% block dbchess_download_headline %}
+        {% if headline %}
+            <{{ hl }}>{{ headline }}</{{ hl }}>
+        {% endif %}
+    {% endblock %}
+
+    {% block dbchess_download_link %}
+        <img
+            src="{{ icon }}"
+            width="18"
+            height="18"
+            alt=""
+            class="mime_icon"
+        >
+
+        <a
+            href="{{ href|raw }}"
+            title="{{ title|raw }}"
+        >
+            {{ link }}, {{ anzahl }} Partien
+            <span class="size">({{ filesize }})</span>
+        </a>
+    {% endblock %}
+
+</div>
+{% endblock %}
