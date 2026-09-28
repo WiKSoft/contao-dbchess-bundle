@@ -59,31 +59,27 @@ Nachschlagetabelle ECO-Code → Eröffnungsname (z. B. `B90`).
 Ein Brett zum Nachspielen der Partien ist nicht enthalten – dafür wird auf der
 Zielseite eine separate Lösung benötigt.
 
-## Installation (FTP + Contao Manager, ohne Git/Konsole)
+## Anforderungen
 
-1. **Ordner hochladen** nach `packages/wiksoft/contao-dbchess-bundle/` im
-   Projektverzeichnis (auf gleicher Ebene wie `vendor/` und `composer.json`,
-   **nicht** in `vendor/`).
+- PHP ^8.1
+- Contao ^5.3
 
-2. **Path-Repository** in der Root-`composer.json` des Projekts eintragen:
-   ```json
-   "repositories": [
-       {
-           "type": "path",
-           "url": "packages/wiksoft/contao-dbchess-bundle",
-           "options": {
-               "symlink": false
-           }
-       }
-   ]
+## Installation
+
+1. Das Paket installieren, entweder im **Contao Manager** (nach
+   `wiksoft/contao-dbchess-bundle` suchen und installieren) oder auf der
+   **Kommandozeile**:
+   ```bash
+   composer require wiksoft/contao-dbchess-bundle
    ```
-   Mit `"symlink": false` wird das Paket nach `vendor/` kopiert. Mit
-   `"symlink": true` wirken Änderungen in `packages/` sofort (der Ordner darf
-   dann aber nie gelöscht werden).
 
-3. **Paket im Contao Manager hinzufügen**: nach `wiksoft/contao-dbchess-bundle`
-   suchen und installieren. Der Manager führt Composer, `assets:install`,
-   Cache-Leeren und die Datenbank-Migration automatisch aus.
+2. Anschließend die Datenbank aktualisieren, entweder im **Contao Manager**
+   unter *Systemwartung → Datenbank aktualisieren* oder auf der
+   **Kommandozeile**:
+   ```bash
+   vendor/bin/contao-console contao:migrate
+   ```
 
-4. **Updates**: geänderte Dateien nach `packages/…` hochladen, `version` in der
-   `composer.json` des Bundles erhöhen und im Contao Manager ein Update anstoßen.
+## Lizenz
+
+LGPL-3.0-or-later, siehe [LICENSE](LICENSE).
