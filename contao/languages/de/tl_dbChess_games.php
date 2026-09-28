@@ -48,6 +48,8 @@ $GLOBALS['TL_LANG']['tl_dbChess_games']['importConfirm'] = '%s Partien aus der D
 $GLOBALS['TL_LANG']['tl_dbChess_games']['exportPgn'] = array('PGN-Export', 'Partien als PGN-Datei exportieren');
 $GLOBALS['TL_LANG']['tl_dbChess_games']['linkGame'] = array('Verknüpfungen anlegen', 'Alle Partien der Sammlung auf mögliche Verknüpfungen prüfen und setzen.', 'Anzahl der verknüpften Partien: ');
 $GLOBALS['TL_LANG']['tl_dbChess_games']['unlinkGame'] = array('Verknüpfungen lösen', 'Alle Verknüpfungen der Sammlung lösen', 'Es wurden alle Verknüpfungen gelöst!');
+$GLOBALS['TL_LANG']['tl_dbChess_games']['linkGameConfirm'] = 'Sollen alle Partien dieser Sammlung auf identische Partien (gleiches Datum, Event, Ort, Runde, Spieler, Ergebnis) geprüft und miteinander verknüpft werden?';
+$GLOBALS['TL_LANG']['tl_dbChess_games']['unlinkGameConfirm'] = 'Sollen wirklich alle Verknüpfungen dieser Sammlung gelöst werden? Auch von Hand gesetzte Verknüpfungen gehen dabei verloren.';
 
 $GLOBALS['TL_LANG']['tl_dbChess_games']['errorDate'] = 'Das eingegeben Datum ist fehlerhaft. Es muss im Format \'JJJJ.MM.DD\' angegeben sein. Ein \'?\' für eine unbekannte Zahl ist erlaubt.';
 

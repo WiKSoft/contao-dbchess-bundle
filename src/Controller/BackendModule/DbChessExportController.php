@@ -9,6 +9,7 @@ use Contao\Input;
 use Contao\StringUtil;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Response;
+use Wiksoft\DbChessBundle\Helper\BackendAccess;
 use Wiksoft\DbChessBundle\Pgn\PgnWriter;
 
 class DbChessExportController extends Backend
@@ -19,15 +20,14 @@ class DbChessExportController extends Backend
             return '';
         }
 
+        $collection = BackendAccess::collection((int) $dc->id);
+
         $games = $this->Database->prepare("SELECT * FROM tl_dbChess_games WHERE pid=? ORDER BY date")
             ->execute($dc->id)
             ->fetchAllAssoc();
 
         // Dateiname generieren
-        $collection = $this->Database->prepare("SELECT name FROM tl_dbChess_collection WHERE id=?")
-            ->limit(1)
-            ->execute($dc->id);
-        $exportFile = StringUtil::generateAlias(StringUtil::decodeEntities((string) $collection->name)) . date('_Ymd-Hi') . '.pgn';
+        $exportFile = StringUtil::generateAlias(StringUtil::decodeEntities((string) $collection['name'])) . date('_Ymd-Hi') . '.pgn';
 
         $response = new Response(PgnWriter::games($games));
         $response->headers->set('Content-Type', 'application/x-chess-pgn; charset=UTF-8');

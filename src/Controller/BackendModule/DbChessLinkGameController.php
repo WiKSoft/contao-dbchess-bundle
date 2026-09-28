@@ -3,20 +3,36 @@
 namespace Wiksoft\DbChessBundle\Controller\BackendModule;
 
 use Contao\Backend;
+use Contao\CoreBundle\Security\DataContainer\UpdateAction;
 use Contao\DataContainer;
-use Contao\Environment;
 use Contao\Input;
-use Contao\StringUtil;
+use Contao\Message;
+use Wiksoft\DbChessBundle\Helper\BackendAccess;
 
 class DbChessLinkGameController extends Backend
 {
+    use ConfirmFormTrait;
+
     public function linkGame(DataContainer $dc)
     {
         if (Input::get('key') != 'linkGame') {
             return '';
         }
+
+        BackendAccess::collection((int) $dc->id);
+
+        if (!$this->isConfirmed('tl_dbChess_linkGame')) {
+            return $this->confirmForm(
+                'tl_dbChess_linkGame',
+                'linkGame',
+                $GLOBALS['TL_LANG']['tl_dbChess_games']['linkGame'][1],
+                $GLOBALS['TL_LANG']['tl_dbChess_games']['linkGameConfirm'],
+                $GLOBALS['TL_LANG']['tl_dbChess_games']['linkGame'][0]
+            );
+        }
+
         $this->import('Database');
-        $i = 0;
+        $updates = [];
         $result = $this->Database->prepare("SELECT * FROM tl_dbChess_games WHERE pid=?")->execute($dc->id);
         while ($result->next()) {
             $row = $result->row();
@@ -31,18 +47,19 @@ class DbChessLinkGameController extends Backend
             if ($arrSet) {
                 $arrSet[] = $row['id'];
                 sort($arrSet);
-                $sid = serialize($arrSet);
-                $this->Database->prepare("UPDATE tl_dbChess_games SET sid=?, gameLink='1' WHERE id=?")->execute($sid, $row['id']);
-                $i++;
+                $arrNew = ['sid' => serialize($arrSet), 'gameLink' => '1'];
+                BackendAccess::denyUnlessGranted(new UpdateAction('tl_dbChess_games', $row, $arrNew));
+                $updates[(int) $row['id']] = $arrNew;
             }
         }
 
-        return '
-<div id="tl_buttons">
-    <a href="' . StringUtil::ampersand(str_replace('&key=linkGame', '', Environment::get('request'))) . '" class="header_back" title="' . StringUtil::specialchars($GLOBALS['TL_LANG']['MSC']['backBTTitle']) . '" accesskey="b">' . $GLOBALS['TL_LANG']['MSC']['backBT'] . '</a>
-</div>
-<h2 class="sub_headline">' . $GLOBALS['TL_LANG']['tl_dbChess_games']['linkGame'][1] . '</h2>
-<div class="tl_box"><p class="tl_confirm">' . $GLOBALS['TL_LANG']['tl_dbChess_games']['linkGame'][2] . $i . '</p></div>
-';
+        // Erst alle Rechte prüfen (oben), dann ändern - sonst bliebe bei einer
+        // verweigerten Partie eine halb verknüpfte Sammlung zurück
+        foreach ($updates as $id => $arrNew) {
+            $this->Database->prepare("UPDATE tl_dbChess_games %s WHERE id=?")->set($arrNew)->execute($id);
+        }
+
+        Message::addConfirmation($GLOBALS['TL_LANG']['tl_dbChess_games']['linkGame'][2] . \count($updates));
+        $this->redirect($this->backUrl('linkGame'));
     }
 }

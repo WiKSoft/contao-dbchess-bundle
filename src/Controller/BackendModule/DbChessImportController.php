@@ -4,6 +4,7 @@ namespace Wiksoft\DbChessBundle\Controller\BackendModule;
 
 use Contao\Backend;
 use Contao\BackendUser;
+use Contao\CoreBundle\Security\DataContainer\CreateAction;
 use Contao\DataContainer;
 use Contao\Environment;
 use Contao\File;
@@ -12,6 +13,7 @@ use Contao\Input;
 use Contao\Message;
 use Contao\StringUtil;
 use Contao\System;
+use Wiksoft\DbChessBundle\Helper\BackendAccess;
 use Wiksoft\DbChessBundle\Helper\GameAlias;
 use Wiksoft\DbChessBundle\Pgn\PgnReader;
 
@@ -50,6 +52,10 @@ class DbChessImportController extends Backend
         if (Input::get('key') != 'importPgn') {
             return '';
         }
+
+        // Sammlung muss existieren und der Benutzer Partien darin anlegen dürfen
+        BackendAccess::collection((int) $dc->id);
+        BackendAccess::denyUnlessGranted(new CreateAction('tl_dbChess_games', ['pid' => (int) $dc->id]));
 
         $this->import(BackendUser::class, 'User');
         $class = $this->User->uploader;
