@@ -5,6 +5,7 @@ use Contao\Config;
 use Contao\DataContainer;
 use Contao\DC_Table;
 use Contao\StringUtil;
+use Wiksoft\DbChessBundle\Helper\EcoCodes;
 use Wiksoft\DbChessBundle\Helper\GameAlias;
 
 /**
@@ -317,22 +318,14 @@ $GLOBALS['TL_DCA']['tl_dbChess_games'] = array
         'eco' => array
             (
             'label' => &$GLOBALS['TL_LANG']['tl_dbChess_games']['eco'],
-            'load_callback' => array
-                (
-                array('tl_dbChess_games', 'loadFieldEco')
-            ),
-            'save_callback' => array
-                (
-                array('tl_dbChess_games', 'saveFieldEco')
-            ),
             'exclude' => true,
             'filter' => true,
             'search' => true,
             'sorting' => true,
             'flag' => 1,
             'inputType' => 'select',
-            'foreignKey' => 'tl_dbChess_eco.ecoCode',
-            'eval' => array('includeBlankOption' => TRUE, 'tl_class' => 'w50'),
+            'options_callback' => array('tl_dbChess_games', 'getEcoOptions'),
+            'eval' => array('includeBlankOption' => TRUE, 'chosen' => true, 'tl_class' => 'w50'),
             'sql' => "varchar(3) NOT NULL default ''"
         ),
         'whiteelo' => array
@@ -647,25 +640,16 @@ class tl_dbChess_games extends Backend {
         throw new Exception($GLOBALS['TL_LANG']['tl_dbChess_games']['errorDate']);
     }
 
-    public function loadFieldEco($field, DataContainer $dc) {
-        // 'id' des ECO-Codes aus der Datenbank in das Feld 'eco' eintragen
-        $this->import('Database');
-        $objSession = $this->Database->prepare("SELECT * FROM tl_dbChess_eco WHERE ecoCode=?")->execute($field);
-        if (!$objSession->id) {
-            $field = '';
-        } else {
-            $field = $objSession->id;
-        }
-        return $field;
-    }
+    /**
+     * ECO-Codes aus der Sprachdatei "dbChess_eco" (siehe EcoCodes). Der
+     * gespeicherte Code bleibt auch dann auswählbar, wenn er dort fehlt.
+     */
+    public function getEcoOptions(?DataContainer $dc = null): array {
+        // Nur im Bearbeitungsformular gibt es einen aktuellen Datensatz (in der
+        // Filterleiste der Liste wäre $dc->id die ID der Sammlung)
+        $current = $dc?->field === 'eco' ? ($dc->getCurrentRecord()['eco'] ?? null) : null;
 
-    public function saveFieldEco($field, DataContainer $dc) {
-        // Feld 'eco', mittels 'ecoCode' der Tabelle 'tl_dbChess_eco', speichern
-        if (!$field) {
-            return '';
-        }
-        $objSession = $this->Database->prepare("SELECT ecoCode FROM tl_dbChess_eco WHERE id=?")->execute($field);
-        return (string) $objSession->ecoCode;
+        return EcoCodes::options($current);
     }
 
     public function showGame($arrRow) {

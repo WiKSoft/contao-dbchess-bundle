@@ -26,11 +26,6 @@ $GLOBALS['TL_CSS'][] = 'bundles/wiksoftdbchess/dbChess.css';
 /**
  * Back end modules
  */
-$GLOBALS['BE_MOD']['content']['dbChess_eco'] = array(
-    'tables' => array('tl_dbChess_eco'),
-    'icon' => 'bundles/wiksoftdbchess/images/iconEco.png',
-);
-
 $GLOBALS['BE_MOD']['content']['dbChess_collection'] = array(
     'tables' => array('tl_dbChess_collection', 'tl_dbChess_games'),
     'icon' => 'bundles/wiksoftdbchess/images/iconBoard.png',

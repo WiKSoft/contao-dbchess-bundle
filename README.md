@@ -24,9 +24,17 @@ Sammlungen als PGN zum Download anbieten.
     verschiedener Autoren, und verknüpft sie über das Feld `sid`.
   - **Verknüpfung aufheben**.
 
-### ECO-Codes (`tl_dbChess_eco`)
+### ECO-Codes
 
-Nachschlagetabelle ECO-Code → Eröffnungsname (z. B. `B90`).
+Die 500 ECO-Codes (A00–E99) mit Eröffnungsnamen und Zugfolge stehen in der
+Sprachdatei `contao/languages/en/dbChess_eco.php`. Sie liefern die Auswahl im
+Feld „ECO“ der Partie und die Namen im Index-Modul (`tag.ecoName`). Englisch
+lädt Contao immer als Rückfallsprache; einzelne Namen lassen sich im Projekt
+überschreiben oder übersetzen, z. B. in `contao/languages/de/dbChess_eco.php`:
+
+```php
+$GLOBALS['TL_LANG']['dbChess_eco']['B90'] = 'Sizilianisch, Najdorf-Variante: 1.e4 c5 …';
+```
 
 ## Frontend
 

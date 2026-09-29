@@ -12,6 +12,7 @@ use Contao\Module;
 use Contao\PageModel;
 use Contao\StringUtil;
 use Contao\System;
+use Wiksoft\DbChessBundle\Helper\EcoCodes;
 use Wiksoft\DbChessBundle\Helper\GameQuery;
 
 class ModuleDbChessIndex extends Module
@@ -308,16 +309,15 @@ class ModuleDbChessIndex extends Module
     }
 
     /**
-     * Baut die Tag-Liste/-Cloud auf. Bei ECO-Codes werden alle benötigten
-     * Klartext-Bezeichnungen in einer einzigen Abfrage nachgeladen (statt
-     * einer Abfrage pro Tag).
+     * Baut die Tag-Liste/-Cloud auf. Bei ECO-Codes kommen die
+     * Eröffnungsnamen aus der Sprachdatei "dbChess_eco" (siehe EcoCodes).
      *
      * @param array<int|string, int> $fieldindex
      * @return array<int, array<string, mixed>>
      */
     private function buildTagCloud(array $fieldindex, string $field, ?int $currentMax): array
     {
-        $ecoNames = $field === 'eco' ? $this->fetchEcoNames(array_keys($fieldindex)) : [];
+        $ecoNames = $field === 'eco' ? EcoCodes::all() : [];
         $logMax = $currentMax ? log($currentMax + 1) : 0.0;
 
         $tags = [];
@@ -351,33 +351,5 @@ class ModuleDbChessIndex extends Module
         $ratio = log($value + 1) / $logMax;
 
         return (int) round($ratio * (max(1, (int) $this->dbChess_index_tag_buckets) - 1)) + 1;
-    }
-
-    /**
-     * Lädt die Klartext-Bezeichnungen für eine Liste von ECO-Codes in
-     * einer einzigen Abfrage (statt einer Abfrage pro Tag / N+1-Problem).
-     *
-     * @param array<int, int|string> $ecoCodes
-     * @return array<int|string, string>
-     */
-    private function fetchEcoNames(array $ecoCodes): array
-    {
-        if (empty($ecoCodes)) {
-            return [];
-        }
-
-        $placeholders = implode(',', array_fill(0, count($ecoCodes), '?'));
-
-        $result = $this->Database
-            ->prepare("SELECT ecoCode, ecoName FROM tl_dbChess_eco WHERE ecoCode IN ($placeholders)")
-            ->execute(...$ecoCodes);
-
-        $map = [];
-
-        while ($result->next()) {
-            $map[$result->ecoCode] = $result->ecoName;
-        }
-
-        return $map;
     }
 }
