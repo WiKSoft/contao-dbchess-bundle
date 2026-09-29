@@ -8,8 +8,8 @@ use Contao\System;
 
 /**
  * ECO-Codes mit Eröffnungsnamen aus der Sprachdatei "dbChess_eco"
- * (contao/languages/en/dbChess_eco.php). Englisch wird von Contao immer als
- * Rückfallsprache geladen, einzelne Namen lassen sich im Projekt
+ * (contao/languages/en|de/dbChess_eco.php). Für andere Sprachen lädt Contao
+ * Englisch als Rückfallsprache, einzelne Namen lassen sich im Projekt
  * überschreiben oder übersetzen.
  */
 final class EcoCodes
