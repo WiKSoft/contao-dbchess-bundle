@@ -1,5 +1,5 @@
 .header_pgn_import, .header_pgn_export{padding:2px 0 3px 20px;margin-left:15px;background-position:left center;background-repeat:no-repeat;background-image:url("images/iconPGN.gif");}
-.header_linkGame{padding:2px 0 3px 20px;margin-left:15px;background-position:left center;background-repeat:no-repeat;background-image:url("images/link.png");}
-.header_unlinkGame{padding:2px 0 3px 20px;margin-left:15px;background-position:left center;background-repeat:no-repeat;background-image:url("images/link_break.png");}
+.header_linkGame{padding:2px 0 3px 20px;margin-left:15px;background-position:left center;background-repeat:no-repeat;background-image:url("images/link.svg");background-size:16px 16px;}
+.header_unlinkGame{padding:2px 0 3px 20px;margin-left:15px;background-position:left center;background-repeat:no-repeat;background-image:url("images/link_break.svg");background-size:16px 16px;}
 
 .dbChess_list_td_icon{white-space: nowrap;text-align: left}

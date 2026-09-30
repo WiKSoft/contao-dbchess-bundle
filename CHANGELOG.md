@@ -3,6 +3,14 @@
 Alle nennenswerten Änderungen an `wiksoft/contao-dbchess-bundle`.
 Die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
+## [Unveröffentlicht]
+
+### Geändert
+
+- Die Icons der Schaltflächen „Partien verknüpfen" und „Verknüpfung lösen"
+  sind jetzt eigene SVG-Grafiken (`link.svg`, `link_break.svg`) im Stil der
+  Contao-Backend-Icons. Sie ersetzen die bisherigen PNG-Dateien.
+
 ## [1.1.0] – 2026-09-29
 
 ### Neu
@@ -40,5 +48,6 @@ Verknüpfen von Dubletten, ECO-Codes, Inhaltselemente „dbChess_list"
 „dbChess_index" (Index/Tag-Cloud), Rechteprüfung und CSRF-Schutz für die
 Sammlungs-Aktionen, Sprachdateien Deutsch und Englisch.
 
+[Unveröffentlicht]: https://github.com/WiKSoft/contao-dbchess-bundle/compare/v1.1.0...HEAD
 [1.1.0]: https://github.com/WiKSoft/contao-dbchess-bundle/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/WiKSoft/contao-dbchess-bundle/releases/tag/v1.0.0
