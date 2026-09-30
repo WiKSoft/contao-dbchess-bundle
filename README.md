@@ -67,13 +67,33 @@ $GLOBALS['TL_LANG']['dbChess_eco']['B90'] = 'Sizilianisch, Najdorf-Variante: 1.e
 - Klick auf einen Eintrag zeigt die zugehörige Partieliste.
 - Ausnahmewerte ausblendbar, Sortierung nach Häufigkeit oder alphabetisch.
 
-Ein Brett zum Nachspielen der Partien ist nicht enthalten – dafür wird auf der
-Zielseite eine separate Lösung benötigt.
+## Partien nachspielen
+
+Ein Brett zum Nachspielen der Partien ist in dieser Erweiterung nicht
+enthalten. Empfohlen wird dafür
+[`wiksoft/contao-lichess-pgnviewer-bundle`](https://github.com/WiKSoft/contao-lichess-pgnviewer-bundle),
+das den [PGN-Viewer von lichess.org](https://github.com/lichess-org/pgn-viewer)
+in Contao einbindet und direkt auf die Schachdatenbank zugreift:
+
+- Das Inhaltselement „Schachpartie (lichess PGN-Viewer)" zeigt Partien aus der
+  Datenbank an, entweder eine Liste aus Sammlungen (mit Filter und Sortierung)
+  oder einzeln ausgewählte Partien.
+- Das Frontend-Modul „lichessPgnviewer Reader" zeigt die Partie an, deren
+  Alias in der URL steht. Es ist damit das passende Ziel für die
+  Weiterleitungsseite von „dbChess_list" und „dbChess_index".
+- Verknüpfte Partien (`sid`) werden als umschaltbare Fassungen angezeigt, die
+  Bemerkung (`remark`) erscheint unter dem Brett.
+
+```bash
+composer require wiksoft/contao-lichess-pgnviewer-bundle
+```
 
 ## Anforderungen
 
 - PHP ^8.1
 - Contao ^5.3
+- empfohlen: `wiksoft/contao-lichess-pgnviewer-bundle` zum Nachspielen der
+  Partien (siehe [Partien nachspielen](#partien-nachspielen))
 
 ## Installation
 
@@ -90,6 +110,18 @@ Zielseite eine separate Lösung benötigt.
    ```bash
    vendor/bin/contao-console contao:migrate
    ```
+
+3. Damit PGN-Dateien importiert und exportiert (Sammlungen) bzw. im Frontend
+   zum Download angeboten werden können, muss
+   der Dateityp `pgn` in den Backend-Einstellungen erlaubt sein. Unter
+   *System → Einstellungen* `pgn` in beide Felder eintragen:
+   - **Erlaubte Upload-Dateitypen** (Abschnitt *Datei-Uploads*) – für das
+     Hochladen bzw. Importieren von `.pgn`-Dateien
+   - **Erlaubte Download-Dateitypen** (Abschnitt *Dateien und Bilder*) – für
+     das Herunterladen bzw. Exportieren von `.pgn`-Dateien
+
+   Der Eintrag wird kommagetrennt an die vorhandene Liste angehängt,
+   z. B. `…,zip,pgn`.
 
 ## Lizenz
 

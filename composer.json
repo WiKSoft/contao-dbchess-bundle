@@ -32,6 +32,9 @@
     "require-dev": {
         "contao/manager-plugin": "^2.0"
     },
+    "suggest": {
+        "wiksoft/contao-lichess-pgnviewer-bundle": "Brett zum Nachspielen der Partien aus der Datenbank (lichess.org PGN-Viewer)."
+    },
     "conflict": {
         "contao/manager-plugin": "<2.0 || >=3.0"
     },

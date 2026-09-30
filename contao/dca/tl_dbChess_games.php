@@ -405,6 +405,10 @@ $GLOBALS['TL_DCA']['tl_dbChess_games'] = array
             'exclude' => true,
             'search' => true,
             'inputType' => 'textarea',
+            'save_callback' => array
+                (
+                array('tl_dbChess_games', 'saveFieldRemark')
+            ),
             'eval' => array('decodeEntities' => false, 'rte' => 'tinyMCE', 'cols' => '20', 'rows' => '10', 'tl_class' => 'clr'),
             'sql' => "text NULL"
         ),
@@ -610,7 +614,35 @@ class tl_dbChess_games extends Backend {
         if (strrpos($field, $dc->activeRecord->result, -1) === FALSE || strrpos($field, $dc->activeRecord->result, -1) + strlen($dc->activeRecord->result) !== strlen($field)) {
             $field .= ' ' . $dc->activeRecord->result;
         }
+        self::checkTextLength($field);
         return $field;
+    }
+
+    public function saveFieldRemark($field, DataContainer $dc) {
+        self::checkTextLength($field);
+        return $field;
+    }
+
+    /**
+     * Die Spalten "pgn" und "remark" sind vom Typ TEXT und fassen höchstens
+     * 65.535 Byte. Im strikten SQL-Modus (Standard bei Contao) würde ein
+     * längerer Wert das Speichern mit einem Datenbankfehler abbrechen und
+     * alle Eingaben gingen verloren. Stattdessen erscheint die Meldung
+     * direkt am Feld, die Eingaben bleiben erhalten. Gezählt werden Byte,
+     * nicht Zeichen: Umlaute, Figurensymbole und HTML-Entities (z. B.
+     * "&#61;") belegen mehr als ein Byte.
+     */
+    private static function checkTextLength($field): void {
+        $maxBytes = 65535;
+        $bytes = \strlen((string) $field);
+
+        if ($bytes > $maxBytes) {
+            throw new \Exception(sprintf(
+                $GLOBALS['TL_LANG']['ERR']['dbChessTextTooLong'] ?? 'Text too long (%s of max. %s bytes).',
+                number_format($bytes, 0, ',', '.'),
+                number_format($maxBytes, 0, ',', '.')
+            ));
+        }
     }
 
     public function saveFieldSevenTagRoster($field, DataContainer $dc) {

@@ -3,6 +3,23 @@
 Alle nennenswerten Änderungen an `wiksoft/contao-dbchess-bundle`.
 Die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
+## [Unveröffentlicht]
+
+### Neu
+
+- Die Felder „PGN" und „Bemerkung" einer Partie prüfen beim Speichern die
+  Länge (höchstens 65.535 Byte, Grenze der Datenbankspalte). Statt eines
+  Datenbankfehlers, bei dem alle Eingaben verloren gingen, erscheint eine
+  Meldung am Feld.
+- `composer.json`: `wiksoft/contao-lichess-pgnviewer-bundle` als Empfehlung
+  (`suggest`) zum Nachspielen der Partien.
+
+### Dokumentation
+
+- README: neuer Abschnitt „Partien nachspielen" mit Empfehlung des
+  lichess PGN-Viewers, Hinweis auf den Dateityp `pgn` in den erlaubten
+  Upload- und Download-Dateitypen.
+
 ## [1.1.1] – 2026-09-30
 
 ### Geändert
@@ -48,6 +65,7 @@ Verknüpfen von Dubletten, ECO-Codes, Inhaltselemente „dbChess_list"
 „dbChess_index" (Index/Tag-Cloud), Rechteprüfung und CSRF-Schutz für die
 Sammlungs-Aktionen, Sprachdateien Deutsch und Englisch.
 
+[Unveröffentlicht]: https://github.com/WiKSoft/contao-dbchess-bundle/compare/v1.1.1...HEAD
 [1.1.1]: https://github.com/WiKSoft/contao-dbchess-bundle/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/WiKSoft/contao-dbchess-bundle/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/WiKSoft/contao-dbchess-bundle/releases/tag/v1.0.0
