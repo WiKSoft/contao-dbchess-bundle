@@ -2,13 +2,29 @@
     "name": "wiksoft/contao-dbchess-bundle",
     "type": "contao-bundle",
     "description": "Schachpartien-Datenbank für Contao (Sammlungen, PGN-Import/-Export, ECO-Codes)",
-    "keywords": ["contao", "chess", "schach", "pgn"],
+    "keywords": [
+        "contao",
+        "chess",
+        "schach",
+        "pgn",
+        "database",
+        "datenbank",
+        "eco",
+        "partien"
+    ],
     "license": "LGPL-3.0-or-later",
+    "homepage": "https://github.com/WiKSoft/contao-dbchess-bundle",
     "authors": [
         {
-            "name": "Wiksoft"
+            "name": "Wilfried Krebbers",
+            "homepage": "https://github.com/WiKSoft",
+            "role": "Developer"
         }
     ],
+    "support": {
+        "issues": "https://github.com/WiKSoft/contao-dbchess-bundle/issues",
+        "source": "https://github.com/WiKSoft/contao-dbchess-bundle"
+    },
     "require": {
         "php": "^8.1",
         "contao/core-bundle": "^5.3"
