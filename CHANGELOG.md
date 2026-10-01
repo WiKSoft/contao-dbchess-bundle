@@ -14,6 +14,14 @@ Die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 - `composer.json`: `wiksoft/contao-lichess-pgnviewer-bundle` als Empfehlung
   (`suggest`) zum Nachspielen der Partien.
 
+### Behoben
+
+- Partienliste (Inhaltselement) und Partien-Index (Modul) ohne
+  Weiterleitungsseite: Im Debug-Modus brach die Seite mit „Key "href" …
+  does not exist" ab, weil die Templates `game.href` abfragen, der Schlüssel
+  aber nur mit Weiterleitungsseite gesetzt war. `href` ist jetzt immer
+  vorhanden (ohne Weiterleitungsseite `null`).
+
 ### Dokumentation
 
 - README: neuer Abschnitt „Partien nachspielen" mit Empfehlung des

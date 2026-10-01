@@ -52,11 +52,10 @@ class ContentDbChessList extends ContentElement
         $gameslist = [];
 
         while ($result->next()) {
-            $game = [];
-
-            if ($objJumpTo !== null) {
-                $game['href'] = $objJumpTo->getFrontendUrl('/items/' . $result->alias);
-            }
+            // "href" immer setzen (ohne Weiterleitungsseite null): die
+            // Templates fragen game.href ab, und Twig wirft im Debug-Modus
+            // (strict_variables) bei einem fehlenden Schlüssel einen Fehler.
+            $game = ['href' => $objJumpTo?->getFrontendUrl('/items/' . $result->alias)];
 
             foreach ($arrFields as $field) {
                 $value = $result->$field;

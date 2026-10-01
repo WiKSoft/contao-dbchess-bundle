@@ -198,11 +198,10 @@ class ModuleDbChessIndex extends Module
         $objJumpTo = $this->dbChess_index_jumpTo ? PageModel::findById($this->dbChess_index_jumpTo) : null;
 
         while ($result->next()) {
-            $game = [];
-
-            if ($objJumpTo !== null) {
-                $game['href'] = $objJumpTo->getFrontendUrl('/items/' . $result->alias);
-            }
+            // "href" immer setzen (ohne Weiterleitungsseite null): die
+            // Templates fragen game.href ab, und Twig wirft im Debug-Modus
+            // (strict_variables) bei einem fehlenden Schlüssel einen Fehler.
+            $game = ['href' => $objJumpTo?->getFrontendUrl('/items/' . $result->alias)];
 
             foreach ($arrDetailFields as $valueFields) {
                 $game[$valueFields] = $result->$valueFields;
