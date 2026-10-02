@@ -60,7 +60,6 @@ class ModuleDbChessIndex extends Module
         // damit der Wert (als Query-Parameter) wieder dem Datenbankwert
         // entspricht.
         $index = StringUtil::decodeEntities($this->fullyUrlDecode((string) Input::get('index')));  // Datenfeld
-        $ceId = Input::get('ce_id');  // Modul-ID
 
         [$where, $whereParams] = GameQuery::collectionWhere($this->dbChess_index_collection);
         [$field, $whiteblack] = $this->resolveIndexField();
@@ -76,7 +75,7 @@ class ModuleDbChessIndex extends Module
 
         // Detailliste zusammenstellen
         $gameslist = [];
-        if ($index && $ceId == $this->id) {
+        if ($index) {
             $gameslist = $this->fetchDetailList($where, $whereParams, $field, $whiteblack, $index, $arrDetailFields, $sortingDetail);
             // Verknüpfte Partien nur einmalig anzeigen
             $gameslist = GameQuery::removeLinkedDuplicates($gameslist, true);
@@ -113,11 +112,11 @@ class ModuleDbChessIndex extends Module
 
     /**
      * Dekodiert einen URL-Parameter vollständig, unabhängig davon, wie oft
-     * er kodiert wurde. Contaos addToUrl()/urlEncode() sowie die
-     * Folder-URL-Erzeugung führen bei Werten mit Sonderzeichen (Komma,
-     * Leerzeichen) zu mehrfacher Prozent-Kodierung; ein einzelnes
-     * urldecode() reicht dann nicht aus, um wieder den Originalwert zu
-     * erhalten. Hier wird so lange dekodiert, bis sich der Wert nicht mehr
+     * er kodiert wurde. Ältere Tag-Links (Folder-URLs über addToUrl())
+     * waren bei Werten mit Sonderzeichen (Komma, Leerzeichen) mehrfach
+     * prozentkodiert und stehen noch in Lesezeichen und Crawler-Queues; ein
+     * einzelnes urldecode() reicht dann nicht aus, um wieder den
+     * Originalwert zu erhalten. Hier wird so lange dekodiert, bis sich der Wert nicht mehr
      * ändert.
      */
     private function fullyUrlDecode(string $value): string
@@ -319,13 +318,19 @@ class ModuleDbChessIndex extends Module
         $ecoNames = $field === 'eco' ? EcoCodes::all() : [];
         $logMax = $currentMax ? log($currentMax + 1) : 0.0;
 
+        // Tag-Links als Query-String auf die aktuelle Seite. Frontend::addToUrl()
+        // ist hier ungeeignet: Es übernimmt alle aktuellen Parameter (verschachtelte
+        // URLs) und kodiert den Wert zusätzlich zum Router erneut (%252C).
+        global $objPage;
+        $baseUrl = $objPage->getFrontendUrl();
+
         $tags = [];
 
         foreach ($fieldindex as $key => $value) {
             $tags[] = [
                 'key' => $key,
                 'count' => $value,
-                'url' => $this->addToUrl('&amp;index=' . $this->urlEncode((string) $key) . '&amp;ce_id=' . $this->id),
+                'url' => $baseUrl . '?' . http_build_query(['index' => (string) $key], '', '&amp;', PHP_QUERY_RFC3986),
                 'size' => $this->resolveTagSize($value, $logMax),
                 'ecoName' => $ecoNames[$key] ?? '',
             ];

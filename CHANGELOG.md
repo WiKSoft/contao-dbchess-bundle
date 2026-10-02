@@ -3,6 +3,17 @@
 Alle nennenswerten Änderungen an `wiksoft/contao-dbchess-bundle`.
 Die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
+## [Unreleased]
+
+### Geändert
+
+- Partien-Index (Modul): Die Tag-Links sind jetzt einfache Query-String-URLs
+  auf die aktuelle Seite (`/quellen.html?index=Aftenposten`). Bisher
+  entstanden über `addToUrl()` Folder-URLs, die Sonderzeichen dreifach
+  kodierten (`%252520`) und alle aktuellen Parameter übernahmen, wodurch
+  verschachtelte URLs entstanden. Der Parameter `ce_id` entfällt; alte
+  Links mit `ce_id` liefern 404.
+
 ## [1.2.0] – 2026-10-01
 
 ### Neu
