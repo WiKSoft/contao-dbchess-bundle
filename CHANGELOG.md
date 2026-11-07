@@ -3,6 +3,17 @@
 Alle nennenswerten Änderungen an `wiksoft/contao-dbchess-bundle`.
 Die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.2.2] – 2026-11-07
+
+### Behoben
+
+- Partien-Index (Modul): In der Partienliste zu einem Index-Wert (z. B. einem
+  Spieler) führte der Link bei verknüpften Partien („sid“) nicht immer auf die
+  hervorgehobene Partie. Die Liste war nur nach dem ersten Detailfeld sortiert,
+  bei gleichem Wert blieb die zufällig zuerst gelieferte Variante stehen. Bei
+  Gleichstand kommt jetzt die hervorgehobene Partie zuerst, danach entscheidet
+  die ID.
+
 ## [1.2.1] – 2026-10-02
 
 ### Geändert
@@ -84,6 +95,7 @@ Verknüpfen von Dubletten, ECO-Codes, Inhaltselemente „dbChess_list"
 „dbChess_index" (Index/Tag-Cloud), Rechteprüfung und CSRF-Schutz für die
 Sammlungs-Aktionen, Sprachdateien Deutsch und Englisch.
 
+[1.2.2]: https://github.com/WiKSoft/contao-dbchess-bundle/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/WiKSoft/contao-dbchess-bundle/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/WiKSoft/contao-dbchess-bundle/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/WiKSoft/contao-dbchess-bundle/compare/v1.1.0...v1.1.1

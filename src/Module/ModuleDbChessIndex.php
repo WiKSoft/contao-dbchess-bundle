@@ -170,6 +170,11 @@ class ModuleDbChessIndex extends Module
     /**
      * Holt die Partien für die Detailliste zu einem gewählten Index-Wert.
      *
+     * Bei gleichem Sortierwert (z. B. verknüpfte Varianten mit demselben
+     * Datum) kommt die hervorgehobene Partie zuerst, danach entscheidet die
+     * ID. removeLinkedDuplicates() behält die zuerst gelistete Partie, der
+     * Link führt damit auf die hervorgehobene.
+     *
      * @param array<int, int|string> $whereParams
      * @param array<int, string> $arrDetailFields
      * @return array<int, array<string, mixed>>
@@ -179,17 +184,17 @@ class ModuleDbChessIndex extends Module
         if ($whiteblack) {
             $params = [...$whereParams, $index, $index];
             $result = $this->Database
-                ->prepare("SELECT * FROM tl_dbChess_games WHERE ($where) AND (white=? OR black=?) ORDER BY $sortingDetail")
+                ->prepare("SELECT * FROM tl_dbChess_games WHERE ($where) AND (white=? OR black=?) ORDER BY $sortingDetail, gameFeatured DESC, id ASC")
                 ->execute(...$params);
         } elseif ($field === 'source') {
             $params = [...$whereParams, $index, addcslashes($index, '%_\\') . ',%'];
             $result = $this->Database
-                ->prepare("SELECT * FROM tl_dbChess_games WHERE ($where) AND ($field=? OR $field LIKE ?) ORDER BY $sortingDetail")
+                ->prepare("SELECT * FROM tl_dbChess_games WHERE ($where) AND ($field=? OR $field LIKE ?) ORDER BY $sortingDetail, gameFeatured DESC, id ASC")
                 ->execute(...$params);
         } else {
             $params = [...$whereParams, $index];
             $result = $this->Database
-                ->prepare("SELECT * FROM tl_dbChess_games WHERE ($where) AND $field=? ORDER BY $sortingDetail")
+                ->prepare("SELECT * FROM tl_dbChess_games WHERE ($where) AND $field=? ORDER BY $sortingDetail, gameFeatured DESC, id ASC")
                 ->execute(...$params);
         }
 
